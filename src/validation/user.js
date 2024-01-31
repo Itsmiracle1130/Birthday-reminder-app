@@ -1,28 +1,34 @@
 const joi = require("joi");
 
-const options = {
-	stripUnknown: true,
-	abortEarly: false,
-	errors: {
-		wrap: {
-			label: ""
-		}
+const schema = joi.object({
+	username: joi.string()
+		.min(2)
+		.max(250)
+		.required()
+		.unique(),
+	email: joi.string()
+		.email()
+		.max(250)
+		.required()
+		.unique(),
+	dob: joi.date()
+		.format("DD-MM-YYYY")
+		.required()
+});
+
+
+async function validateUserInfo (req, res, next) {
+	const userinfo = req.body;
+
+	try {
+		await schema.validateAsync(userinfo);
+		next();
+	} catch (error) {
+		return ({
+			message: error.details[0].message,
+			status: 400
+		});
 	}
-};
+}
 
-const validateUserSignupDetails = (userInfo) => {
-	const schema = joi.object({
-		username: joi.string().min(6).max(20).required(),
-		email: joi.string().email().min(7).max(30).required(),
-		dob: joi.date().format("DD-MM-YYYY").required()
-	});
-	return schema.validate(userInfo, options);
-};
-const validateUserLoginDetails = (userInfo) => {
-	const schema = joi.object({
-		emailUsername: joi.string().min(6).max(30).required()
-	});
-	return schema.validate(userInfo, options);
-};
-
-module.exports = {validateUserSignupDetails, validateUserLoginDetails};
+module.exports = {validateUserInfo};
