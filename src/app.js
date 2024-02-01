@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const helmet = require("helmet");
+const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 const {connectMongoDb} = require("./database/database");
 const userModel = require("./models/user");
@@ -46,11 +47,58 @@ app.post("/submit", async (req, res) => {
 	}
 });
 
-function task () {
-	console.log("I am asked to print this every minute");
+//save admin details
+const admin = process.env.user;
+const adminPass = process.env.pwd;
+const reciever = process.env.email;
+
+//send email setup
+function sendEmail (){
+
+	return new Promise((resolve, reject) => {
+
+		var transporter = nodemailer.createTransport({
+			service: "gmail.com",
+			auth:{
+				user: admin,
+				pass: adminPass
+			}
+		});
+
+		const mail_configs = {
+			from: admin,
+			to: reciever,
+			subject: "Birthday Wish from The Birthday reminder App",
+			text: "Just testing this out for now"
+		};
+		transporter.sendMail(mail_configs, function(error, info){
+			if (error){
+				console.log(error);
+				return reject({message: "An error has occured"});
+			}
+			return resolve({message: "Email sent successfully"});
+		});
+	});
 }
 
-cron.schedule("* * * * *" , task);
+app.get("/sendEmail", (req, res) => {
+	// const {name} = req.query;
+	sendEmail()
+		.then((response) => res.send(response.message))
+		.catch((error) => res.status(500).send(error.message));
+});
+
+//Check database for celebrant
+function checkForCelebrant (){
+
+}
+
+// function task () {
+// 	console.log("I am asked to print this every minute");
+// }
+
+// cron.schedule("* * * * *" , task);
+// cron.schedule("* * * * *" , sendEmail);
 
 // Start the server
 const PORT = process.env.PORT;
