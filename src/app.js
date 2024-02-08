@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 const {connectMongoDb} = require("./database/database");
 const User = require("./models/user");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -16,10 +17,13 @@ connectMongoDb();
 app.use(helmet());
 
 // Set up EJS as the view engine
+// app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
 // Middleware to parse form data
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(express.static(path.join(__dirname + "/public")));
 
 // Route to render the form
 app.get("/form", (req, res) => {
@@ -120,11 +124,11 @@ check()
 
 
 
-function task () {
-	console.log("I am asked to print this every minute");
-}
+// function task () {
+// 	console.log("I am asked to print this every minute");
+// }
 
-cron.schedule("* * * * *" , task);
+// cron.schedule("* * * * *" , task);
 
 // Start the server
 const PORT = process.env.PORT;
