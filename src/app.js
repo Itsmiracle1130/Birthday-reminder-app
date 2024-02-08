@@ -4,7 +4,7 @@ const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const cron = require("node-cron");
 const {connectMongoDb} = require("./database/database");
-const userModel = require("./models/user");
+const User = require("./models/user");
 require("dotenv").config();
 
 const app = express();
@@ -34,7 +34,7 @@ app.post("/submit", async (req, res) => {
 
 	try {
         
-		const user = new userModel({
+		const user = new User({
 			dob,
 			email: lowercaseEmail,
 			username: lowercaseUsername
@@ -47,58 +47,84 @@ app.post("/submit", async (req, res) => {
 	}
 });
 
-//save admin details
-const admin = process.env.user;
-const adminPass = process.env.pwd;
-const reciever = process.env.email;
-
-//send email setup
-function sendEmail (){
-
-	return new Promise((resolve, reject) => {
-
-		var transporter = nodemailer.createTransport({
-			service: "gmail.com",
-			auth:{
-				user: admin,
-				pass: adminPass
+async function check (){
+	const today = new Date();
+	const currentMonth = today.getMonth() + 1;
+	const currentDay = today.getDate();
+	
+	const celebrants = await User.aggregate([
+		{
+			$addFields: {
+				dobMonth: { $month: "$dob" },
+				dobDay: { $dayOfMonth: "$dob" }
 			}
-		});
-
-		const mail_configs = {
-			from: admin,
-			to: reciever,
-			subject: "Birthday Wish from The Birthday reminder App",
-			text: "Just testing this out for now"
-		};
-		transporter.sendMail(mail_configs, function(error, info){
-			if (error){
-				console.log(error);
-				return reject({message: "An error has occured"});
+		},
+		{
+			$match: {
+				dobMonth: currentMonth,
+				dobDay: currentDay
 			}
-			return resolve({message: "Email sent successfully"});
-		});
+		}
+	]);
+	const celebrantsEmail = celebrants.map(celebrants => celebrants.email);
+	const CelebrantsUsername = celebrants.map(celebrants => celebrants.username);
+
+	return ({celebrantsEmail, CelebrantsUsername});
+}
+
+
+check()
+	.then((extractedCelebrants) => {
+		// console.log(extractedCelebrants.celebrantsEmail);
+		
+		//save admin details
+		const admin = process.env.user;
+		const adminPass = process.env.pwd;
+		
+		//send email setup
+		function sendEmail (){
+		
+			return new Promise((resolve, reject) => {
+		
+				var transporter = nodemailer.createTransport({
+					service: "gmail.com",
+					auth:{
+						user: admin,
+						pass: adminPass
+					}
+				});
+		
+				const mail_configs = {
+					from: admin,
+					to: extractedCelebrants.celebrantsEmail,
+					subject: "Birthday Wish from The Birthday reminder App",
+					text: `Happy birthday ${extractedCelebrants.CelebrantsUsername}, \nJust testing this out for now`
+				};
+				transporter.sendMail(mail_configs, function(error, info){
+					if (error){
+						console.log(error);
+						return reject({message: "An error has occured"});
+					}
+					return resolve({message: "Email sent successfully"});
+				});
+			});
+		}
+
+		//Cron job configuration
+
+		cron.schedule("0 7 * * *" , sendEmail);
+		return extractedCelebrants;
+	}).catch(status => {
+		console.log(`An error ${status} occurred`);
 	});
+
+
+
+function task () {
+	console.log("I am asked to print this every minute");
 }
 
-app.get("/sendEmail", (req, res) => {
-	// const {name} = req.query;
-	sendEmail()
-		.then((response) => res.send(response.message))
-		.catch((error) => res.status(500).send(error.message));
-});
-
-//Check database for celebrant
-function checkForCelebrant (){
-
-}
-
-// function task () {
-// 	console.log("I am asked to print this every minute");
-// }
-
-// cron.schedule("* * * * *" , task);
-// cron.schedule("* * * * *" , sendEmail);
+cron.schedule("* * * * *" , task);
 
 // Start the server
 const PORT = process.env.PORT;

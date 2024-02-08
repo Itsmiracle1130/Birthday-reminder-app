@@ -19,4 +19,12 @@ const userModel = new Schema ({
 	}
 });
 
+// const currentTime = new Date();
+// const day = currentTime.getDate();
+// const month = currentTime.getMonth() + 1; 
+// const year = currentTime.getFullYear();
+// const currentDate = (`${year}-${month}-${day}`);
+
+// const findBirthday = userModel.find({ dob: currentDate });
+
 module.exports = mongoose.model("User", userModel);
