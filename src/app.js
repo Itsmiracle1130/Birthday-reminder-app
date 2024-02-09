@@ -17,13 +17,18 @@ connectMongoDb();
 app.use(helmet());
 
 // Set up EJS as the view engine
-// app.set("views", path.join(__dirname, "views"));
+app.set("views", path.join(__dirname, "../views"));
 app.set("view engine", "ejs");
 
 // Middleware to parse form data
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(express.static(path.join(__dirname + "/public")));
+app.use(express.static(path.join(__dirname, "../public")));
+
+//Route to Landing page
+app.get("/", (req, res) => {
+	res.render("index");
+});
 
 // Route to render the form
 app.get("/form", (req, res) => {
